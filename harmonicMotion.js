@@ -27,6 +27,7 @@ let aAcceleration = 0;
 let gravity = 0.8;
 let damping = 0.99;
 let released = true;
+let controlPt1,controlPt2;
 
 
 function setup() {
@@ -34,20 +35,25 @@ function setup() {
     cnv.parent('canvasZone');
 	origin = createVector(mainWidth/2,0);
 	bob = createVector(mainWidth/2,len);
-
+	controlPt1 = createVector(origin.x,origin.y + (len *0.05));
+	controlPt2 = createVector(origin.x,origin.y + (len *0.1));
 }
 
 function draw() {
 	background(255);
 	
-     bob.x = origin.x + len * sin(angle);
-	 bob.y = origin.y + len * cos(angle);
-	 
-	 
-	 if(released){
-		line(origin.x,origin.y,bob.x,bob.y);
+	bob.x = origin.x + len * sin(angle);
+	bob.y = origin.y + len * cos(angle);
+	
+	bezier(origin.x,origin.y,controlPt1.x,controlPt1.y,controlPt2.x,controlPt2.y,bob.x,bob.y);
+	
+	push();
+		stroke(0,0,0);
+		fill(255,0,0);
 		ellipse(bob.x,bob.y,bobSize,bobSize);
+	pop();
 		
+	 if(released){		
 		aAcceleration = -1 * gravity/len * sin(angle);
 		angle += aVelocity;
 		aVelocity += aAcceleration;
@@ -55,33 +61,36 @@ function draw() {
 	 }
 }
 
-
 function mouseDragged() {
 	if(!released){
-	  var x = mouseX;
-	  var y = mouseY;
+	  var mx = mouseX;
+	  var my = mouseY;
+		 var diff = p5.Vector.sub(origin, createVector(mx,my));
+
+		angle = atan2(-1*diff.y, diff.x) - radians(90);    
 	}
   return false;
 }
 
 function mousePressed() {
 	
-  var x = mouseX;
-  var y = mouseY;
-  if(x >= (bob.x - bobSize/2) && x <= (bob.x + bobSize/2)){
-	  if(y >= (bob.y- bobSize/2) && y <= (bob.y + bobSize/2)){
-	    	released = false;
-	  }
-  }
-
+  var mx = mouseX;
+  var my = mouseY;
+  
+  var d = dist(mx, my, bob.x, bob.y);
+	if(d < bobSize/2){
+		 released = false;
+		 var diff = p5.Vector.sub(origin, createVector(mx,my));
+		 angle = atan2(-1*diff.y, diff.x) - radians(90);    
+	}
 }
 
 function mouseReleased() {
-	
 	if(!released){
 	  var x = mouseX;
 	  var y = mouseY;
 	   released = true;
+	   aVelocity = 0;
 	}
  
 }
