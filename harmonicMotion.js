@@ -2,13 +2,14 @@
 Philippe MEYER 
 inspired by the coding train !
 DATE : 2018-10-10
+v 0.2 : intrucing "span" mesuring the amplitude of the bob between 2 frames when crossing the south border (zero angle downward)
 */
 
 
 let mainHeight = 640;
 let	mainWidth = 640;
 let origin;
-let fr = 50;
+let fr = 40;
 let gravity = 0.8;
 let relauchingSteps = 5;
 let pendulums = [];
@@ -16,7 +17,7 @@ let minSize = Math.round(mainHeight/25);
 let maxSize = Math.round(mainHeight/10);
 let minLength = Math.round(mainHeight/65);
 let maxLength = Math.round(mainHeight/22);
-
+let bgColor;
 function setup() {
 	var cnv = createCanvas(mainWidth,mainHeight,P2D);
     cnv.parent('canvasZone');
@@ -28,15 +29,18 @@ function setup() {
 		let r = map(random(),0,1,70,255);
 		let g = map(random(),0,1,30,255);
 		let b = map(random(),0,1,50,255);
-		pendulums.push(new Pendulum(origin,angle,round(random(minLength,maxLength)*10),random(minSize,maxSize),color(r,g,b),random(992,996)/1000));
+		pendulums.push(new Pendulum(origin,angle,round(random(minLength,maxLength)*10),random(minSize,maxSize),color(r,g,b),990/1000));
 	}
 	pendulums.sort(function(a,b){
 		return a.len <= b.len;
 	});
+	frameRate(fr);
+	bgColor = color(245,245,245);
 }
 
 function draw() {
-	background(245);
+
+	background(bgColor);
 	stroke(140);
 	rect(0,0,mainWidth-1,mainHeight-1);
 	strokeWeight(2);
@@ -44,7 +48,7 @@ function draw() {
 	ellipse(mainWidth/2,mainHeight/2-3,6,6);
 	strokeWeight(1);
 	if(frameCount == 20) fr = floor(getFrameRate());
-	pendulums.forEach(function(pendulum){
+	pendulums.forEach(function(pendulum,i){
 		
 		pendulum.bob.previousPosition.x = pendulum.bob.position.x;
 		pendulum.bob.previousPosition.y = pendulum.bob.position.y;
@@ -57,10 +61,19 @@ function draw() {
 		if(pendulum.bob.released){		
 		  if(!pendulum.relaunching){
 			pendulum.acceleration = -1 * gravity/pendulum.len * sin(pendulum.angle);
+			pendulum.previousAngle = pendulum.angle;
 			pendulum.angle += pendulum.velocity;
 			pendulum.velocity += pendulum.acceleration;
 			pendulum.velocity *= pendulum.damping;
-			if(abs(pendulum.velocity) < 0.0000005){
+			if(pendulum.previousAngle < 0 && pendulum.angle > 0){ 
+				// just crossing the downborder from left to right
+				pendulum.span = pendulum.angle - pendulum.previousAngle;
+			}else if(pendulum.previousAngle > 0 && pendulum.angle < 0){
+				// just crossing the downborder from right to left
+				pendulum.span = pendulum.previousAngle - pendulum.angle;
+			}
+			if(pendulum.span <0.001 || abs(pendulum.velocity) < 0.0000005){
+				pendulum.span = 1;
 				pendulum.relaunching = true;
 				pendulum.angle =0;
 				pendulum.velocity=0;
@@ -83,11 +96,13 @@ function Pendulum(origin,angle,length,bobSize,bobColor,damping){
 	this.origin = origin;
 	this.startAngle = angle;
 	this.angle = angle;
+	this.previousAngle = angle;
 	this.len = length;
 	this.bob = new Bob(bobSize,bobColor,origin.x,origin.y+length);
 	this.velocity = 0;
 	this.acceleration = 0;
 	this.damping = damping || 0.99;
+	this.span = 1;
 	this.relauching = false;
 	this.cpt = 0;
 	this.textSize = floor(bobSize/2);
